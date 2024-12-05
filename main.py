@@ -4,7 +4,7 @@ import time
 import threading
 import math
 
-# Classe que simula a eleição em anel
+# Classe para simular o processo de eleição em anel.
 class RingElectionSimulator:
     def __init__(self, root, num_processes):
         self.root = root
@@ -21,7 +21,7 @@ class RingElectionSimulator:
         self.fail_button = tk.Button(root, text="Fail Random Process", command=self.fail_random_process)
         self.fail_button.pack()
 
-    # Método que desenha o anel
+    # Função para desenhar o anel de processos na tela.
     def draw_ring(self):
         self.canvas.delete("all")
         radius = 200
@@ -39,54 +39,60 @@ class RingElectionSimulator:
             if i == self.coordinator:
                 text += f" (Líder)"
             self.canvas.create_text(x, y, text=text, font=("Arial", 14))
+            # Display logs below each process
             if i < len(self.logs):
                 self.canvas.create_text(x, y + 30, text=self.logs[i], font=("Arial", 10), fill="blue")
 
-    # Método que inicia a thread de eleição
     def start_election_thread(self):
+        """
+        Inicia uma nova thread para executar o processo de eleição.
+        """
         threading.Thread(target=self.start_election, daemon=True).start()
 
-    # Método que inicia a eleição
     def start_election(self):
+        """
+        Executa o processo de eleição em anel, escolhendo um iniciador aleatório e determinando o novo coordenador.
+        """
         initiator = random.choice([i for i in range(self.num_processes) if self.active_processes[i]])
         self.log_message(f"Process {initiator} iniciou a eleição.", initiator)
         current = initiator
-        highest_id = initiator
+        election_message = [initiator]
         visited = set()
         while True:
             time.sleep(1)
             next_process = (current + 1) % self.num_processes
             while not self.active_processes[next_process]:
                 next_process = (next_process + 1) % self.num_processes
-            self.log_message(f"Processo {current} -> {next_process} id: {highest_id}.", current)
-            if highest_id < next_process:
-                highest_id = next_process
+            election_message.append(next_process)
+            self.log_message(f"Processo {current} -> {next_process} IDs: {election_message}.", current)
             visited.add(next_process)
             if next_process == initiator or len(visited) == self.num_processes:
                 break
             current = next_process
+        highest_id = max(election_message)
         self.coordinator = highest_id
-        self.log_message(f"Processo {highest_id} foi eleito como coordenador.", highest_id)
+        self.log_message(f"Processo {highest_id} lider.", highest_id)
         self.announce_coordinator(highest_id, initiator)
         self.draw_ring()
 
-    # Método que anuncia o coordenador
     def announce_coordinator(self, coordinator, initiator):
         current = initiator
         visited = set()
         while True:
-            time.sleep(1)
+            time.sleep(2)
             next_process = (current + 1) % self.num_processes
             while not self.active_processes[next_process]:
                 next_process = (next_process + 1) % self.num_processes
-            self.log_message(f"Processo {current} -> {next_process} lider {coordinator}.", current)
+            self.log_message(f"Processo {current} -> {next_process} lider: {coordinator}.", current)
             visited.add(next_process)
             if next_process == initiator or len(visited) == self.num_processes:
                 break
             current = next_process
 
-    # Método que falha um processo aleatório
     def fail_random_process(self):
+        """
+        Marca um processo aleatório como falho e inicia uma nova eleição se o coordenador falhar.
+        """
         active_processes = [i for i in range(self.num_processes) if self.active_processes[i]]
         if active_processes:
             failed_process = random.choice(active_processes)
@@ -95,7 +101,6 @@ class RingElectionSimulator:
             self.draw_ring()
             self.start_election_thread()
 
-    # Método que loga uma mensagem
     def log_message(self, message, process_id=None):
         print(message)
         if process_id is not None:
@@ -106,6 +111,9 @@ class RingElectionSimulator:
         self.draw_ring()
 
 def main():
+    """
+    Função principal para inicializar a interface e executar o simulador de eleição em anel.
+    """
     root = tk.Tk()
     root.title("Simulador de Eleição em Anel")
     simulator = RingElectionSimulator(root, num_processes=8)
